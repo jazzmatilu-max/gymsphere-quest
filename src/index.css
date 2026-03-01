@@ -1,96 +1,54 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
-
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 230 25% 7%;
+    --foreground: 160 100% 95%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card: 230 25% 10%;
+    --card-foreground: 160 100% 95%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover: 230 25% 10%;
+    --popover-foreground: 160 100% 95%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 155 100% 50%;
+    --primary-foreground: 230 25% 7%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 230 30% 15%;
+    --secondary-foreground: 155 100% 80%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 230 20% 14%;
+    --muted-foreground: 220 15% 55%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 190 100% 50%;
+    --accent-foreground: 230 25% 7%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 80% 55%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 155 60% 20%;
+    --input: 230 25% 15%;
+    --ring: 155 100% 50%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
 
-    --sidebar-background: 0 0% 98%;
+    --neon-glow: 155 100% 50%;
+    --neon-cyan: 190 100% 50%;
+    --neon-purple: 280 100% 65%;
+    --xp-bar: 155 100% 50%;
 
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
-  }
-
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-background: 230 25% 7%;
+    --sidebar-foreground: 160 100% 95%;
+    --sidebar-primary: 155 100% 50%;
+    --sidebar-primary-foreground: 230 25% 7%;
+    --sidebar-accent: 230 30% 15%;
+    --sidebar-accent-foreground: 155 100% 80%;
+    --sidebar-border: 155 60% 20%;
+    --sidebar-ring: 155 100% 50%;
   }
 }
 
@@ -100,6 +58,112 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans;
+    font-family: 'Space Grotesk', sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Space Grotesk', sans-serif;
+  }
+
+  code, .font-mono {
+    font-family: 'JetBrains Mono', monospace;
+  }
+}
+
+@layer utilities {
+  .neon-text {
+    color: hsl(var(--primary));
+    text-shadow: 0 0 7px hsl(var(--primary) / 0.8),
+                 0 0 20px hsl(var(--primary) / 0.4),
+                 0 0 40px hsl(var(--primary) / 0.2);
+  }
+
+  .neon-text-cyan {
+    color: hsl(var(--neon-cyan));
+    text-shadow: 0 0 7px hsl(var(--neon-cyan) / 0.8),
+                 0 0 20px hsl(var(--neon-cyan) / 0.4);
+  }
+
+  .neon-border {
+    border: 1px solid hsl(var(--primary) / 0.4);
+    box-shadow: 0 0 8px hsl(var(--primary) / 0.15),
+                inset 0 0 8px hsl(var(--primary) / 0.05);
+  }
+
+  .neon-border-cyan {
+    border: 1px solid hsl(var(--neon-cyan) / 0.4);
+    box-shadow: 0 0 8px hsl(var(--neon-cyan) / 0.15),
+                inset 0 0 8px hsl(var(--neon-cyan) / 0.05);
+  }
+
+  .neon-card {
+    @apply bg-card rounded-lg neon-border p-4;
+    background: linear-gradient(
+      135deg,
+      hsl(var(--card)) 0%,
+      hsl(230 25% 12%) 100%
+    );
+  }
+
+  .neon-button {
+    @apply bg-primary text-primary-foreground font-semibold rounded-lg px-6 py-3;
+    box-shadow: 0 0 15px hsl(var(--primary) / 0.4),
+                0 0 30px hsl(var(--primary) / 0.1);
+    transition: all 0.3s ease;
+  }
+
+  .neon-button:hover {
+    box-shadow: 0 0 20px hsl(var(--primary) / 0.6),
+                0 0 40px hsl(var(--primary) / 0.2);
+    transform: translateY(-1px);
+  }
+
+  .cyber-grid {
+    background-image:
+      linear-gradient(hsl(var(--primary) / 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--primary) / 0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+
+  .glass {
+    background: hsl(var(--card) / 0.6);
+    backdrop-filter: blur(12px);
+  }
+
+  .xp-bar-fill {
+    background: linear-gradient(90deg, hsl(var(--primary)), hsl(var(--neon-cyan)));
+    box-shadow: 0 0 10px hsl(var(--primary) / 0.5);
+  }
+
+  .achievement-glow {
+    animation: achievement-pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes achievement-pulse {
+    0%, 100% {
+      box-shadow: 0 0 5px hsl(var(--primary) / 0.3);
+    }
+    50% {
+      box-shadow: 0 0 25px hsl(var(--primary) / 0.6),
+                  0 0 50px hsl(var(--primary) / 0.2);
+    }
+  }
+
+  @keyframes scanline {
+    0% { transform: translateY(-100%); }
+    100% { transform: translateY(100vh); }
+  }
+
+  .scanline::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: hsl(var(--primary) / 0.1);
+    animation: scanline 8s linear infinite;
+    pointer-events: none;
   }
 }

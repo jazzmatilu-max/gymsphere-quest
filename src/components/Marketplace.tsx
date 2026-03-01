@@ -1,32 +1,13 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import { ShoppingBag, Filter, Coins, Dumbbell, Shirt, FlaskConical } from "lucide-react";
-
-interface Product {
-  id: string;
-  name: string;
-  price: number;
-  category: "suplemento" | "ropa" | "equipo";
-  fitnessGoal: string[];
-  image: string;
-  description: string;
-}
-
-const PRODUCTS: Product[] = [
-  { id: "1", name: "Whey Protein Cyber", price: 120, category: "suplemento", fitnessGoal: ["Hipertrofia", "Fuerza"], image: "🥤", description: "Proteína de suero premium 2kg" },
-  { id: "2", name: "Creatina NeonForce", price: 60, category: "suplemento", fitnessGoal: ["Hipertrofia", "Fuerza"], image: "⚡", description: "Monohidrato puro 500g" },
-  { id: "3", name: "Tank Top Glitch", price: 45, category: "ropa", fitnessGoal: ["Hipertrofia", "Cardio"], image: "👕", description: "Fibra anti-sudor con diseño cyberpunk" },
-  { id: "4", name: "Shorts HyperFlex", price: 55, category: "ropa", fitnessGoal: ["Cardio", "Pérdida de peso"], image: "🩳", description: "Shorts elásticos con bolsillos" },
-  { id: "5", name: "Pre-Workout Volt", price: 85, category: "suplemento", fitnessGoal: ["Fuerza", "Cardio"], image: "🔋", description: "Energía extrema 30 servings" },
-  { id: "6", name: "Guantes CyberGrip", price: 35, category: "equipo", fitnessGoal: ["Hipertrofia", "Fuerza"], image: "🧤", description: "Agarre máximo con soporte de muñeca" },
-  { id: "7", name: "Fat Burner Neon", price: 70, category: "suplemento", fitnessGoal: ["Pérdida de peso", "Cardio"], image: "🔥", description: "Termogénico avanzado 60 caps" },
-  { id: "8", name: "Hoodie Phantom", price: 80, category: "ropa", fitnessGoal: ["Hipertrofia", "Fuerza", "Cardio"], image: "🧥", description: "Hoodie oversized edición limitada" },
-];
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
+import type { Tables } from "@/integrations/supabase/types";
 
 const CATEGORIES = ["todos", "suplemento", "ropa", "equipo"] as const;
 const GOALS = ["Todos", "Hipertrofia", "Fuerza", "Cardio", "Pérdida de peso"];
-
-const USER_GOAL = "Hipertrofia";
 
 const categoryIcons: Record<string, React.ReactNode> = {
   todos: <ShoppingBag className="w-4 h-4" />,
@@ -36,33 +17,92 @@ const categoryIcons: Record<string, React.ReactNode> = {
 };
 
 const Marketplace = () => {
+  const { user } = useAuth();
+  const [items, setItems] = useState<Tables<"marketplace_items">[]>([]);
+  const [userGoal, setUserGoal] = useState("Hipertrofia");
+  const [userCoins, setUserCoins] = useState(0);
   const [category, setCategory] = useState<string>("todos");
   const [goalFilter, setGoalFilter] = useState<string>("Todos");
   const [showRecommended, setShowRecommended] = useState(true);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      const [{ data: itemsData }, profileRes] = await Promise.all([
+        supabase.from("marketplace_items").select("*").eq("in_stock", true),
+        user ? supabase.from("profiles").select("fitness_goal, coins").eq("user_id", user.id).maybeSingle() : Promise.resolve({ data: null }),
+      ]);
+      setItems(itemsData ?? []);
+      if (profileRes.data) {
+        setUserGoal(profileRes.data.fitness_goal);
+        setUserCoins(profileRes.data.coins);
+      }
+      setLoading(false);
+    };
+    load();
+  }, [user]);
+
+  const handleBuy = async (item: Tables<"marketplace_items">) => {
+    if (!user) return;
+    if (userCoins < item.price) {
+      toast.error("No tienes suficientes GymCoins");
+      return;
+    }
+
+    // Deduct coins
+    const { error: coinErr } = await supabase
+      .from("profiles")
+      .update({ coins: userCoins - item.price })
+      .eq("user_id", user.id);
+
+    if (coinErr) { toast.error("Error al procesar compra"); return; }
+
+    // Add to inventory
+    const { error: invErr } = await supabase.from("user_inventory").insert({
+      user_id: user.id,
+      item_id: item.id,
+    });
+
+    if (invErr) { toast.error("Error al agregar al inventario"); return; }
+
+    setUserCoins((c) => c - item.price);
+    toast.success(`¡Compraste ${item.name}!`);
+  };
 
   const filtered = useMemo(() => {
-    let items = PRODUCTS;
-    if (category !== "todos") items = items.filter((p) => p.category === category);
-    if (goalFilter !== "Todos") items = items.filter((p) => p.fitnessGoal.includes(goalFilter));
+    let list = items;
+    if (category !== "todos") list = list.filter((p) => p.category === category);
+    if (goalFilter !== "Todos") list = list.filter((p) => p.fitness_goals.includes(goalFilter));
     if (showRecommended) {
-      items = [...items].sort((a, b) => {
-        const aMatch = a.fitnessGoal.includes(USER_GOAL) ? 1 : 0;
-        const bMatch = b.fitnessGoal.includes(USER_GOAL) ? 1 : 0;
-        return bMatch - aMatch;
+      list = [...list].sort((a, b) => {
+        const aM = a.fitness_goals.includes(userGoal) ? 1 : 0;
+        const bM = b.fitness_goals.includes(userGoal) ? 1 : 0;
+        return bM - aM;
       });
     }
-    return items;
-  }, [category, goalFilter, showRecommended]);
+    return list;
+  }, [items, category, goalFilter, showRecommended, userGoal]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      <motion.h2
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="text-2xl font-bold neon-text"
-      >
+      <motion.h2 initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="text-2xl font-bold neon-text">
         Marketplace
       </motion.h2>
+
+      {/* Coins display */}
+      <div className="flex items-center gap-2 neon-card py-2 px-4">
+        <Coins className="w-5 h-5 text-accent" />
+        <span className="font-mono font-bold neon-text-cyan">{userCoins}</span>
+        <span className="text-muted-foreground text-sm">GymCoins disponibles</span>
+      </div>
 
       {/* Category filters */}
       <div className="flex gap-2 overflow-x-auto pb-1">
@@ -71,9 +111,7 @@ const Marketplace = () => {
             key={c}
             onClick={() => setCategory(c)}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all whitespace-nowrap ${
-              category === c
-                ? "bg-primary text-primary-foreground"
-                : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+              category === c ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
             }`}
           >
             {categoryIcons[c]}
@@ -90,9 +128,7 @@ const Marketplace = () => {
             key={g}
             onClick={() => setGoalFilter(g)}
             className={`px-3 py-1 rounded-full text-xs font-medium transition-all whitespace-nowrap ${
-              goalFilter === g
-                ? "neon-border bg-primary/10 text-primary"
-                : "bg-muted text-muted-foreground hover:text-foreground"
+              goalFilter === g ? "neon-border bg-primary/10 text-primary" : "bg-muted text-muted-foreground hover:text-foreground"
             }`}
           >
             {g}
@@ -100,21 +136,14 @@ const Marketplace = () => {
         ))}
       </div>
 
-      {/* Smart recommendation toggle */}
       <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
-        <input
-          type="checkbox"
-          checked={showRecommended}
-          onChange={(e) => setShowRecommended(e.target.checked)}
-          className="accent-primary"
-        />
-        Priorizar según mi objetivo ({USER_GOAL})
+        <input type="checkbox" checked={showRecommended} onChange={(e) => setShowRecommended(e.target.checked)} className="accent-primary" />
+        Priorizar según mi objetivo ({userGoal})
       </label>
 
-      {/* Products grid */}
       <div className="grid grid-cols-2 gap-3">
         {filtered.map((product, i) => {
-          const isRecommended = product.fitnessGoal.includes(USER_GOAL);
+          const isRecommended = product.fitness_goals.includes(userGoal);
           return (
             <motion.div
               key={product.id}
@@ -128,7 +157,7 @@ const Marketplace = () => {
                   RECOMENDADO
                 </span>
               )}
-              <div className="text-4xl text-center mb-2">{product.image}</div>
+              <div className="text-4xl text-center mb-2">{product.emoji}</div>
               <h3 className="font-semibold text-sm text-foreground leading-tight">{product.name}</h3>
               <p className="text-xs text-muted-foreground mt-1">{product.description}</p>
               <div className="flex items-center justify-between mt-3">
@@ -136,7 +165,11 @@ const Marketplace = () => {
                   <Coins className="w-3.5 h-3.5" />
                   {product.price}
                 </span>
-                <button className="bg-primary/20 text-primary text-xs font-semibold px-3 py-1 rounded-full hover:bg-primary/30 transition-colors">
+                <button
+                  onClick={() => handleBuy(product)}
+                  disabled={userCoins < product.price}
+                  className="bg-primary/20 text-primary text-xs font-semibold px-3 py-1 rounded-full hover:bg-primary/30 transition-colors disabled:opacity-30"
+                >
                   Comprar
                 </button>
               </div>

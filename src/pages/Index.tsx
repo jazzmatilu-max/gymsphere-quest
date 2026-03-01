@@ -1,27 +1,13 @@
 import { useState } from "react";
-import { useAuth } from "@/hooks/useAuth";
-import { AuthProvider } from "@/hooks/useAuth";
 import Dashboard from "@/components/Dashboard";
 import TrainingMatch from "@/components/TrainingMatch";
 import GeoCheckin from "@/components/GeoCheckin";
 import Marketplace from "@/components/Marketplace";
 import AvatarCreator from "@/components/AvatarCreator";
 import BottomNav from "@/components/BottomNav";
-import Auth from "@/pages/Auth";
 
-const AppContent = () => {
-  const { user, loading } = useAuth();
+const Index = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
-
-  if (!user) return <Auth />;
 
   const renderTab = () => {
     switch (activeTab) {
@@ -43,11 +29,5 @@ const AppContent = () => {
     </div>
   );
 };
-
-const Index = () => (
-  <AuthProvider>
-    <AppContent />
-  </AuthProvider>
-);
 
 export default Index;

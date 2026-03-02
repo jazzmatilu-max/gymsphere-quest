@@ -88,6 +88,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          age: number | null
           avatar_hair_color: string | null
           avatar_photo_url: string | null
           avatar_skin_tone: string | null
@@ -97,6 +98,7 @@ export type Database = {
           gym_lat: number | null
           gym_lng: number | null
           gym_name: string
+          height_cm: number | null
           id: string
           level: number
           streak_days: number
@@ -104,9 +106,11 @@ export type Database = {
           updated_at: string
           user_id: string
           username: string
+          weight_kg: number | null
           xp: number
         }
         Insert: {
+          age?: number | null
           avatar_hair_color?: string | null
           avatar_photo_url?: string | null
           avatar_skin_tone?: string | null
@@ -116,6 +120,7 @@ export type Database = {
           gym_lat?: number | null
           gym_lng?: number | null
           gym_name?: string
+          height_cm?: number | null
           id?: string
           level?: number
           streak_days?: number
@@ -123,9 +128,11 @@ export type Database = {
           updated_at?: string
           user_id: string
           username?: string
+          weight_kg?: number | null
           xp?: number
         }
         Update: {
+          age?: number | null
           avatar_hair_color?: string | null
           avatar_photo_url?: string | null
           avatar_skin_tone?: string | null
@@ -135,6 +142,7 @@ export type Database = {
           gym_lat?: number | null
           gym_lng?: number | null
           gym_name?: string
+          height_cm?: number | null
           id?: string
           level?: number
           streak_days?: number
@@ -142,6 +150,7 @@ export type Database = {
           updated_at?: string
           user_id?: string
           username?: string
+          weight_kg?: number | null
           xp?: number
         }
         Relationships: []
@@ -212,6 +221,10 @@ export type Database = {
     Functions: {
       add_xp: {
         Args: { p_coins?: number; p_user_id: string; p_xp: number }
+        Returns: Json
+      }
+      purchase_item: {
+        Args: { p_item_id: string; p_user_id: string }
         Returns: Json
       }
     }

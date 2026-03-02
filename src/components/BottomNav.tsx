@@ -1,4 +1,5 @@
-import { Home, Users, MapPin, ShoppingBag, User } from "lucide-react";
+import { Home, Users, MapPin, ShoppingBag, User, FlaskConical } from "lucide-react";
+import { sounds } from "@/lib/sounds";
 
 interface NavBarProps {
   active: string;
@@ -10,6 +11,7 @@ const tabs = [
   { id: "match", icon: Users, label: "Match" },
   { id: "checkin", icon: MapPin, label: "Check-in" },
   { id: "marketplace", icon: ShoppingBag, label: "Tienda" },
+  { id: "nutrition", icon: FlaskConical, label: "Nutrición" },
   { id: "avatar", icon: User, label: "Avatar" },
 ];
 
@@ -23,11 +25,9 @@ const BottomNav = ({ active, onNavigate }: NavBarProps) => {
           return (
             <button
               key={tab.id}
-              onClick={() => onNavigate(tab.id)}
-              className={`flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition-all ${
-                isActive
-                  ? "text-primary"
-                  : "text-muted-foreground hover:text-foreground"
+              onClick={() => { sounds.click(); onNavigate(tab.id); }}
+              className={`flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg transition-all ${
+                isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
               }`}
             >
               <div className="relative">

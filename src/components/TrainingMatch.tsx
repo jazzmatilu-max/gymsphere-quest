@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
-import { motion } from "framer-motion";
-import { MapPin, Clock, Zap, Heart, Loader2, Users } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { MapPin, Zap, Heart, Loader2, Users, Radio, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile, type Profile } from "@/hooks/useProfile";
@@ -15,7 +15,7 @@ function calculateAffinity(me: Profile, other: Profile): number {
   score += Math.max(0, 20 - xpDiff / 200);
   const levelDiff = Math.abs(me.level - other.level);
   score += Math.max(0, 15 - levelDiff * 2);
-  score += 15; // base for being active
+  score += 15;
   return Math.min(100, Math.round(score));
 }
 
@@ -25,7 +25,20 @@ const TrainingMatch = () => {
   const [selectedMatch, setSelectedMatch] = useState<string | null>(null);
   const [users, setUsers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [scanning, setScanning] = useState(false);
   const [sending, setSending] = useState<string | null>(null);
+
+  const startScan = () => {
+    setScanning(true);
+    sounds.sonar();
+    setTimeout(() => {
+      setScanning(false);
+      if (users.length > 0) {
+        sounds.match();
+        toast({ title: "¡SEÑAL DETECTADA!", description: `${users.length} guerrero(s) encontrado(s) en tu zona` });
+      }
+    }, 2500);
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -46,7 +59,7 @@ const TrainingMatch = () => {
     if (!user) return;
     setSending(targetId);
     sounds.click();
-    
+
     const { error } = await supabase.from("training_matches").insert({
       requester_id: user.id,
       target_id: targetId,
@@ -75,8 +88,63 @@ const TrainingMatch = () => {
   return (
     <div className="space-y-6">
       <motion.h2 initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="text-2xl font-bold neon-text">
-        Match de Entrenamiento
+        Radar de Match
       </motion.h2>
+
+      {/* Radar scan button */}
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="neon-card flex flex-col items-center gap-4">
+        <div className="relative w-32 h-32">
+          {/* Radar circles */}
+          {[1, 2, 3].map((ring) => (
+            <div key={ring} className="absolute rounded-full border border-primary/20"
+              style={{
+                inset: `${(3 - ring) * 16}px`,
+              }} />
+          ))}
+          {/* Scanning line */}
+          <AnimatePresence>
+            {scanning && (
+              <motion.div
+                initial={{ rotate: 0 }}
+                animate={{ rotate: 360 }}
+                transition={{ duration: 2, repeat: 1, ease: "linear" }}
+                className="absolute inset-0"
+              >
+                <div className="absolute top-1/2 left-1/2 w-1/2 h-0.5 origin-left"
+                  style={{ background: "linear-gradient(90deg, hsl(155 100% 50%), transparent)" }} />
+              </motion.div>
+            )}
+          </AnimatePresence>
+          {/* Center dot */}
+          <motion.div
+            animate={{ scale: scanning ? [1, 1.5, 1] : 1 }}
+            transition={{ duration: 1, repeat: scanning ? Infinity : 0 }}
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-primary"
+            style={{ boxShadow: "0 0 10px hsl(155 100% 50%)" }}
+          />
+          {/* Match dots */}
+          {!scanning && matches.slice(0, 5).map((m, i) => {
+            const angle = (i * 72) * (Math.PI / 180);
+            const radius = 40 - (m.affinity / 100) * 20;
+            return (
+              <motion.div key={m.id} initial={{ opacity: 0, scale: 0 }} animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.3 + i * 0.15 }}
+                className="absolute w-2 h-2 rounded-full bg-accent"
+                style={{
+                  top: `calc(50% + ${Math.sin(angle) * radius}px)`,
+                  left: `calc(50% + ${Math.cos(angle) * radius}px)`,
+                  boxShadow: "0 0 6px hsl(280 100% 65%)",
+                }} />
+            );
+          })}
+        </div>
+        <button onClick={startScan} disabled={scanning} className="neon-button text-sm py-2 flex items-center gap-2">
+          <Radio className="w-4 h-4" /> {scanning ? "Escaneando..." : "Escanear Zona"}
+        </button>
+        <p className="text-xs text-muted-foreground font-mono text-center">
+          {matches.length} guerrero(s) detectados • Gimnasio: {profile?.gym_name}
+        </p>
+      </motion.div>
 
       {matches.length === 0 ? (
         <div className="neon-card text-center py-8">
@@ -87,14 +155,16 @@ const TrainingMatch = () => {
         <div className="space-y-3">
           {matches.map((match, i) => (
             <motion.div key={match.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.1 }}
-              onClick={() => setSelectedMatch(selectedMatch === match.id ? null : match.id)}
+              onClick={() => { setSelectedMatch(selectedMatch === match.id ? null : match.id); sounds.click(); }}
               className="neon-card cursor-pointer hover:border-primary/60 transition-all">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-lg">
+                  <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center overflow-hidden">
                     {match.avatar_photo_url ? (
-                      <img src={match.avatar_photo_url} className="w-10 h-10 rounded-full object-cover" />
-                    ) : "⚡"}
+                      <img src={match.avatar_photo_url} className="w-10 h-10 rounded-full object-cover" alt="" />
+                    ) : (
+                      <User className="w-5 h-5 text-primary" />
+                    )}
                   </div>
                   <div>
                     <h3 className="font-semibold text-foreground">{match.username}</h3>
@@ -112,23 +182,40 @@ const TrainingMatch = () => {
                 <motion.div initial={{ width: 0 }} animate={{ width: `${match.affinity}%` }} transition={{ delay: i * 0.1 + 0.3, duration: 0.8 }}
                   className="h-full xp-bar-fill rounded-full" />
               </div>
-              {selectedMatch === match.id && (
-                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="mt-4 pt-3 border-t border-border space-y-2 text-sm">
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <MapPin className="w-4 h-4 text-primary" /> {match.gym_name}
-                  </div>
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Zap className="w-4 h-4 text-accent" /> Objetivo: {match.fitness_goal}
-                  </div>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleMatch(match.user_id, match.affinity); }}
-                    disabled={sending === match.id}
-                    className="neon-button w-full mt-2 text-sm py-2 flex items-center justify-center gap-2">
-                    {sending === match.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Heart className="w-4 h-4" />}
-                    Enviar Solicitud
-                  </button>
-                </motion.div>
-              )}
+
+              <AnimatePresence>
+                {selectedMatch === match.id && (
+                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}
+                    className="mt-4 pt-3 border-t border-border space-y-3 text-sm overflow-hidden">
+                    {/* Profile comparison */}
+                    <div className="grid grid-cols-2 gap-2 text-xs font-mono">
+                      <div className="bg-muted/30 rounded-lg p-2 text-center">
+                        <p className="text-muted-foreground">TÚ</p>
+                        <p className="text-foreground font-semibold">LVL {profile?.level}</p>
+                        <p className="text-primary text-[10px]">{profile?.fitness_goal}</p>
+                      </div>
+                      <div className="bg-muted/30 rounded-lg p-2 text-center">
+                        <p className="text-muted-foreground">RIVAL</p>
+                        <p className="text-foreground font-semibold">LVL {match.level}</p>
+                        <p className="text-accent text-[10px]">{match.fitness_goal}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <MapPin className="w-4 h-4 text-primary" /> {match.gym_name}
+                    </div>
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Zap className="w-4 h-4 text-accent" /> Objetivo: {match.fitness_goal}
+                    </div>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleMatch(match.user_id, match.affinity); }}
+                      disabled={sending === match.id}
+                      className="neon-button w-full mt-2 text-sm py-2 flex items-center justify-center gap-2">
+                      {sending === match.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Heart className="w-4 h-4" />}
+                      Enviar Solicitud de Match
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </motion.div>
           ))}
         </div>

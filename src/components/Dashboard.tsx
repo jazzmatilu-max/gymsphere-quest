@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Zap, Coins, Trophy, Flame, TrendingUp, Target, LogOut, Edit3, Save, Loader2, User } from "lucide-react";
+import { Zap, Coins, Trophy, Flame, TrendingUp, Target, LogOut, Edit3, Save, Loader2, User, Trash2 } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
@@ -17,6 +17,61 @@ const ACHIEVEMENTS = [
 
 const GOALS = ["Hipertrofia", "Fuerza", "Cardio", "Pérdida de peso"];
 
+/* God Mode: golden neon theme when daily goal is met */
+const useGodMode = (totalWorkouts: number) => {
+  const [active, setActive] = useState(false);
+  useEffect(() => {
+    // God mode activates at 5+ total workouts (simulates daily goal)
+    const isGod = totalWorkouts >= 5;
+    setActive(isGod);
+    if (isGod) {
+      document.documentElement.style.setProperty("--primary", "45 100% 55%");
+      document.documentElement.style.setProperty("--neon-glow", "45 100% 55%");
+      document.documentElement.style.setProperty("--ring", "45 100% 55%");
+    }
+    return () => {
+      document.documentElement.style.setProperty("--primary", "155 100% 50%");
+      document.documentElement.style.setProperty("--neon-glow", "155 100% 50%");
+      document.documentElement.style.setProperty("--ring", "155 100% 50%");
+    };
+  }, [totalWorkouts]);
+  return active;
+};
+
+/* Falling coin animation */
+const FallingCoins = ({ trigger }: { trigger: number }) => {
+  const [coins, setCoins] = useState<{ id: number; x: number }[]>([]);
+  useEffect(() => {
+    if (trigger <= 0) return;
+    const newCoins = Array.from({ length: 5 }, (_, i) => ({
+      id: Date.now() + i,
+      x: 20 + Math.random() * 60,
+    }));
+    setCoins(newCoins);
+    const t = setTimeout(() => setCoins([]), 1500);
+    return () => clearTimeout(t);
+  }, [trigger]);
+
+  return (
+    <div className="fixed inset-0 pointer-events-none z-40">
+      <AnimatePresence>
+        {coins.map((coin) => (
+          <motion.div
+            key={coin.id}
+            initial={{ y: -30, x: `${coin.x}%`, opacity: 1, scale: 1 }}
+            animate={{ y: "100vh", opacity: 0, rotate: 720 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 1.2, ease: "easeIn" }}
+            className="absolute text-2xl"
+          >
+            🪙
+          </motion.div>
+        ))}
+      </AnimatePresence>
+    </div>
+  );
+};
+
 const Dashboard = () => {
   const { profile, updateProfile } = useProfile();
   const { signOut } = useAuth();
@@ -25,6 +80,10 @@ const Dashboard = () => {
   const [username, setUsername] = useState("");
   const [gymName, setGymName] = useState("");
   const [goal, setGoal] = useState("");
+  const [coinDrop, setCoinDrop] = useState(0);
+  const [showReset, setShowReset] = useState(false);
+
+  const godMode = useGodMode(profile?.total_workouts || 0);
 
   if (!profile) return null;
 
@@ -48,6 +107,13 @@ const Dashboard = () => {
     setSaving(false);
   };
 
+  const handleFactoryReset = () => {
+    sounds.error();
+    localStorage.clear();
+    toast({ title: "MEMORIA BORRADA", description: "Reiniciando sistema..." });
+    setTimeout(() => window.location.reload(), 1000);
+  };
+
   const isUnlocked = (a: typeof ACHIEVEMENTS[0]) => {
     if (a.minWorkouts && profile.total_workouts >= a.minWorkouts) return true;
     if (a.minStreak && profile.streak_days >= a.minStreak) return true;
@@ -58,6 +124,15 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-6">
+      <FallingCoins trigger={coinDrop} />
+
+      {godMode && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+          className="text-center text-xs font-mono text-yellow-400 py-1 rounded-full bg-yellow-500/10 border border-yellow-500/30">
+          ⚡ MODO DIOS ACTIVO ⚡
+        </motion.div>
+      )}
+
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="text-center relative">
         <button onClick={signOut} className="absolute right-0 top-0 text-muted-foreground hover:text-foreground transition-colors">
           <LogOut className="w-5 h-5" />
@@ -69,7 +144,7 @@ const Dashboard = () => {
       {/* Avatar mini preview */}
       {profile.avatar_photo_url && (
         <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} className="flex justify-center">
-          <div className="w-20 h-20 rounded-full border-2 border-primary overflow-hidden" style={{ boxShadow: "0 0 20px hsl(155 100% 50% / 0.4)" }}>
+          <div className="w-20 h-20 rounded-full border-2 border-primary overflow-hidden" style={{ boxShadow: "0 0 20px hsl(var(--primary) / 0.4)" }}>
             <img src={profile.avatar_photo_url} alt="Avatar" className="w-full h-full object-cover" />
           </div>
         </motion.div>
@@ -88,7 +163,7 @@ const Dashboard = () => {
           <motion.div
             initial={{ width: 0 }}
             animate={{ width: `${xpPercent}%` }}
-            transition={{ delay: 0.3, duration: 1, ease: "easeOut" }}
+            transition={{ delay: 0.3, duration: 1.2, ease: "easeOut" }}
             className="h-full xp-bar-fill rounded-full"
           />
         </div>
@@ -101,7 +176,9 @@ const Dashboard = () => {
           { icon: <Flame className="w-5 h-5" />, value: `${profile.streak_days}d`, label: "Racha", color: "neon-text" },
           { icon: <TrendingUp className="w-5 h-5" />, value: profile.total_workouts, label: "Sesiones", color: "neon-text" },
         ].map((stat, i) => (
-          <motion.div key={stat.label} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 + i * 0.1 }} className="neon-card text-center">
+          <motion.div key={stat.label} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 + i * 0.1 }}
+            className="neon-card text-center cursor-pointer"
+            onClick={() => { if (stat.label === "GymCoins") { setCoinDrop(c => c + 1); sounds.purchase(); } else { sounds.click(); } }}>
             <div className="flex justify-center mb-1 text-primary">{stat.icon}</div>
             <p className={`text-xl font-bold font-mono ${stat.color}`}>{stat.value}</p>
             <p className="text-xs text-muted-foreground">{stat.label}</p>
@@ -187,6 +264,24 @@ const Dashboard = () => {
           })}
         </div>
       </motion.div>
+
+      {/* Factory Reset - hidden toggle */}
+      <div className="text-center">
+        <button onClick={() => setShowReset(!showReset)} className="text-[10px] text-muted-foreground/30 font-mono hover:text-muted-foreground transition-colors">
+          SISTEMA v2.0
+        </button>
+        <AnimatePresence>
+          {showReset && (
+            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}
+              className="mt-3 overflow-hidden">
+              <button onClick={handleFactoryReset}
+                className="flex items-center gap-2 mx-auto text-xs font-mono text-destructive bg-destructive/10 border border-destructive/30 rounded-lg px-4 py-2 hover:bg-destructive/20 transition-colors">
+                <Trash2 className="w-3 h-3" /> BORRAR MEMORIA DE SISTEMA
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 };

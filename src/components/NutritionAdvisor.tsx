@@ -1,6 +1,6 @@
-import { useState, useMemo } from "react";
-import { motion } from "framer-motion";
-import { FlaskConical, Target, Scale, Save, Loader2, Apple, Beef, Egg, Wheat } from "lucide-react";
+import { useState, useMemo, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { FlaskConical, Target, Scale, Save, Loader2, Apple, Beef, Egg, Wheat, Bell } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 import { toast } from "@/hooks/use-toast";
 import { sounds } from "@/lib/sounds";
@@ -26,7 +26,7 @@ const getMealPlan = (goal: string): MealSuggestion[] => {
       { meal: "Cena", foods: ["Pollo 200g", "Arroz blanco", "Aguacate y tomate"], icon: <Wheat className="w-4 h-4 text-primary" /> },
     ],
     "Cardio": [
-      { meal: "Desayuno", foods: ["Avena con frutas y miel", "Tostada integral con mermelada", "Jugo verde (espinaca, manzana)"], icon: <Egg className="w-4 h-4 text-accent" /> },
+      { meal: "Desayuno", foods: ["Avena con frutas y miel", "Tostada integral con mermelada", "Jugo verde"], icon: <Egg className="w-4 h-4 text-accent" /> },
       { meal: "Almuerzo", foods: ["Pasta integral con pollo", "Ensalada mediterránea", "Fruta de temporada"], icon: <Beef className="w-4 h-4 text-primary" /> },
       { meal: "Merienda", foods: ["Barrita energética", "Plátano con miel", "Bebida isotónica"], icon: <Apple className="w-4 h-4 text-accent" /> },
       { meal: "Cena", foods: ["Pescado blanco 150g", "Verduras al vapor", "Arroz integral"], icon: <Wheat className="w-4 h-4 text-primary" /> },
@@ -41,12 +41,73 @@ const getMealPlan = (goal: string): MealSuggestion[] => {
   return plans[goal] || plans["Hipertrofia"];
 };
 
+/* Sliding notification banner for nutrition tips */
+const NutritionAlert = ({ tip, onDismiss }: { tip: string | null; onDismiss: () => void }) => (
+  <AnimatePresence>
+    {tip && (
+      <motion.div
+        initial={{ y: -80, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: -80, opacity: 0 }}
+        transition={{ type: "spring", stiffness: 300, damping: 25 }}
+        className="fixed top-4 left-4 right-4 z-50 neon-card border-accent/60 border-2 flex items-start gap-3"
+        style={{ boxShadow: "0 0 20px hsl(190 100% 50% / 0.3)" }}
+      >
+        <Bell className="w-5 h-5 text-accent shrink-0 mt-0.5" />
+        <div className="flex-1">
+          <p className="text-xs font-mono text-accent font-bold">SISTEMA NUTRICIONAL</p>
+          <p className="text-sm text-foreground mt-0.5">{tip}</p>
+        </div>
+        <button onClick={onDismiss} className="text-muted-foreground text-xs font-mono">✕</button>
+      </motion.div>
+    )}
+  </AnimatePresence>
+);
+
+const NUTRITION_TIPS: Record<string, string[]> = {
+  "Hipertrofia": [
+    "💪 Consume 2.2g de proteína por kg de peso corporal",
+    "🥩 Incluye una fuente de proteína en cada comida",
+    "⚡ Toma creatina 5g diarios para maximizar fuerza",
+  ],
+  "Fuerza": [
+    "🏋️ Carbohidratos complejos antes de entrenar",
+    "🥚 4+ huevos al día para aminoácidos esenciales",
+    "💊 Suplementa con ZMA para mejor recuperación",
+  ],
+  "Cardio": [
+    "🏃 Hidratación con electrolitos post-cardio",
+    "🍌 Plátano 30 min antes de correr",
+    "⚡ Beta-alanina para mejorar resistencia",
+  ],
+  "Pérdida de peso": [
+    "🔥 Déficit de 300-500 kcal para pérdida sostenible",
+    "🥗 Prioriza vegetales de hoja verde en cada comida",
+    "☕ Café negro antes de entrenar acelera metabolismo",
+  ],
+};
+
 const NutritionAdvisor = () => {
   const { profile, updateProfile } = useProfile();
   const [weight, setWeight] = useState(profile?.weight_kg?.toString() || "");
   const [height, setHeight] = useState(profile?.height_cm?.toString() || "");
   const [age, setAge] = useState(profile?.age?.toString() || "");
   const [saving, setSaving] = useState(false);
+  const [activeTip, setActiveTip] = useState<string | null>(null);
+
+  // Auto-show nutrition tips as sliding notifications
+  useEffect(() => {
+    const goal = profile?.fitness_goal || "Hipertrofia";
+    const tips = NUTRITION_TIPS[goal] || NUTRITION_TIPS["Hipertrofia"];
+    let idx = 0;
+    const showNext = () => {
+      setActiveTip(tips[idx % tips.length]);
+      idx++;
+    };
+    const timer = setTimeout(showNext, 2000);
+    const interval = setInterval(showNext, 12000);
+    return () => { clearTimeout(timer); clearInterval(interval); };
+  }, [profile?.fitness_goal]);
 
   const macros = useMemo(() => {
     const w = parseFloat(weight);
@@ -111,6 +172,8 @@ const NutritionAdvisor = () => {
 
   return (
     <div className="space-y-6">
+      <NutritionAlert tip={activeTip} onDismiss={() => setActiveTip(null)} />
+
       <motion.h2 initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="text-2xl font-bold neon-text">
         IA Nutrition Advisor
       </motion.h2>
@@ -121,21 +184,17 @@ const NutritionAdvisor = () => {
           <Scale className="w-4 h-4 text-primary" /> Datos Corporales
         </h3>
         <div className="grid grid-cols-3 gap-3">
-          <div>
-            <label className="text-xs text-muted-foreground font-mono block mb-1">PESO (kg)</label>
-            <input type="number" value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="75"
-              className="w-full bg-muted/50 border border-border rounded-lg px-3 py-2 text-sm text-foreground font-mono focus:outline-none focus:border-primary" />
-          </div>
-          <div>
-            <label className="text-xs text-muted-foreground font-mono block mb-1">ALTURA (cm)</label>
-            <input type="number" value={height} onChange={(e) => setHeight(e.target.value)} placeholder="175"
-              className="w-full bg-muted/50 border border-border rounded-lg px-3 py-2 text-sm text-foreground font-mono focus:outline-none focus:border-primary" />
-          </div>
-          <div>
-            <label className="text-xs text-muted-foreground font-mono block mb-1">EDAD</label>
-            <input type="number" value={age} onChange={(e) => setAge(e.target.value)} placeholder="25"
-              className="w-full bg-muted/50 border border-border rounded-lg px-3 py-2 text-sm text-foreground font-mono focus:outline-none focus:border-primary" />
-          </div>
+          {[
+            { label: "PESO (kg)", value: weight, setter: setWeight, placeholder: "75" },
+            { label: "ALTURA (cm)", value: height, setter: setHeight, placeholder: "175" },
+            { label: "EDAD", value: age, setter: setAge, placeholder: "25" },
+          ].map((field) => (
+            <div key={field.label}>
+              <label className="text-xs text-muted-foreground font-mono block mb-1">{field.label}</label>
+              <input type="number" value={field.value} onChange={(e) => field.setter(e.target.value)} placeholder={field.placeholder}
+                className="w-full bg-muted/50 border border-border rounded-lg px-3 py-2 text-sm text-foreground font-mono focus:outline-none focus:border-primary" />
+            </div>
+          ))}
         </div>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Target className="w-4 h-4 text-primary" />

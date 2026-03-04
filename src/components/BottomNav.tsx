@@ -1,5 +1,6 @@
 import { Home, Users, MapPin, ShoppingBag, User, FlaskConical } from "lucide-react";
 import { sounds } from "@/lib/sounds";
+import { motion } from "framer-motion";
 
 interface NavBarProps {
   active: string;
@@ -25,7 +26,7 @@ const BottomNav = ({ active, onNavigate }: NavBarProps) => {
           return (
             <button
               key={tab.id}
-              onClick={() => { sounds.click(); onNavigate(tab.id); }}
+              onClick={() => { sounds.navigate(); onNavigate(tab.id); }}
               className={`flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg transition-all ${
                 isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
               }`}
@@ -33,7 +34,11 @@ const BottomNav = ({ active, onNavigate }: NavBarProps) => {
               <div className="relative">
                 <Icon className="w-5 h-5" />
                 {isActive && (
-                  <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary shadow-[0_0_6px_hsl(155_100%_50%)]" />
+                  <motion.div
+                    layoutId="nav-indicator"
+                    className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary"
+                    style={{ boxShadow: "0 0 6px hsl(var(--primary))" }}
+                  />
                 )}
               </div>
               <span className="text-[10px] font-medium">{tab.label}</span>

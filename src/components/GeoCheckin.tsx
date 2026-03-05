@@ -44,38 +44,37 @@ const GeoCheckin = () => {
       setDistance(Math.round(d));
 
       if (d <= 100 && user) {
-          // Record checkin in DB
-          await supabase.from("checkins").insert({
-            user_id: user.id,
-            latitude: pos.coords.latitude,
-            longitude: pos.coords.longitude,
-            distance_meters: Math.round(d),
-            validated: true,
-            xp_earned: 50,
-            coins_earned: 10,
-          });
+        await supabase.from("checkins").insert({
+          user_id: user.id,
+          latitude: lat,
+          longitude: lng,
+          distance_meters: Math.round(d),
+          validated: true,
+          xp_earned: 50,
+          coins_earned: 10,
+        });
 
-          // Add XP via function
-          const { data } = await supabase.rpc("add_xp", { p_user_id: user.id, p_xp: 50, p_coins: 10 });
-          const result = data as any;
+        const { data } = await supabase.rpc("add_xp", { p_user_id: user.id, p_xp: 50, p_coins: 10 });
+        const result = data as any;
 
-          setXpEarned(50);
-          setCoinsEarned(10);
-          setStatus("success");
-          sounds.success();
-          await refetch();
+        setXpEarned(50);
+        setCoinsEarned(10);
+        setStatus("success");
+        sounds.success();
+        await refetch();
 
-          if (result?.leveled_up) {
-            sounds.levelUp();
-            toast({ title: "¡LEVEL UP!", description: `Has alcanzado el nivel ${result.level}` });
-          } else {
-            toast({ title: "¡Check-in exitoso!", description: "+50 XP, +10 GymCoins" });
-          }
+        if (result?.leveled_up) {
+          sounds.levelUp();
+          toast({ title: "¡LEVEL UP!", description: `Has alcanzado el nivel ${result.level}` });
         } else {
-          setStatus("too_far");
-          sounds.error();
+          toast({ title: "¡Check-in exitoso!", description: "+50 XP, +10 GymCoins" });
         }
-      },
+      } else {
+        setStatus("too_far");
+        sounds.error();
+      }
+    };
+
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         await processPosition(pos.coords.latitude, pos.coords.longitude);

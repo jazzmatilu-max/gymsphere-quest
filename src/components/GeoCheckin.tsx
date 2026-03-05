@@ -39,48 +39,65 @@ const GeoCheckin = () => {
     setGeoError(null);
     sounds.sonar();
 
+    const processPosition = async (lat: number, lng: number) => {
+      const d = getDistance(lat, lng, gymLat, gymLng);
+      setDistance(Math.round(d));
+
+      if (d <= 100 && user) {
+        await supabase.from("checkins").insert({
+          user_id: user.id,
+          latitude: lat,
+          longitude: lng,
+          distance_meters: Math.round(d),
+          validated: true,
+          xp_earned: 50,
+          coins_earned: 10,
+        });
+
+        const { data } = await supabase.rpc("add_xp", { p_user_id: user.id, p_xp: 50, p_coins: 10 });
+        const result = data as any;
+
+        setXpEarned(50);
+        setCoinsEarned(10);
+        setStatus("success");
+        sounds.success();
+        await refetch();
+
+        if (result?.leveled_up) {
+          sounds.levelUp();
+          toast({ title: "¡LEVEL UP!", description: `Has alcanzado el nivel ${result.level}` });
+        } else {
+          toast({ title: "¡Check-in exitoso!", description: "+50 XP, +10 GymCoins" });
+        }
+      } else {
+        setStatus("too_far");
+        sounds.error();
+      }
+    };
+
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
-        const d = getDistance(pos.coords.latitude, pos.coords.longitude, gymLat, gymLng);
-        setDistance(Math.round(d));
-
-        if (d <= 100 && user) {
-          // Record checkin in DB
-          await supabase.from("checkins").insert({
-            user_id: user.id,
-            latitude: pos.coords.latitude,
-            longitude: pos.coords.longitude,
-            distance_meters: Math.round(d),
-            validated: true,
-            xp_earned: 50,
-            coins_earned: 10,
-          });
-
-          // Add XP via function
-          const { data } = await supabase.rpc("add_xp", { p_user_id: user.id, p_xp: 50, p_coins: 10 });
-          const result = data as any;
-
-          setXpEarned(50);
-          setCoinsEarned(10);
-          setStatus("success");
-          sounds.success();
-          await refetch();
-
-          if (result?.leveled_up) {
-            sounds.levelUp();
-            toast({ title: "¡LEVEL UP!", description: `Has alcanzado el nivel ${result.level}` });
-          } else {
-            toast({ title: "¡Check-in exitoso!", description: "+50 XP, +10 GymCoins" });
-          }
-        } else {
-          setStatus("too_far");
-          sounds.error();
-        }
+        await processPosition(pos.coords.latitude, pos.coords.longitude);
       },
       (err) => {
-        setGeoError(err.code === 1 ? "Permiso de ubicación denegado." : "No se pudo obtener tu ubicación.");
-        setStatus("error");
-        sounds.error();
+        if (err.code === 1) {
+          setGeoError("Permiso de ubicación denegado.");
+          setStatus("error");
+          sounds.error();
+        } else {
+          // Retry with low accuracy / network-based location
+          navigator.geolocation.getCurrentPosition(
+            async (pos) => {
+              await processPosition(pos.coords.latitude, pos.coords.longitude);
+            },
+            () => {
+              setGeoError("No se pudo obtener tu ubicación. Intenta de nuevo.");
+              setStatus("error");
+              sounds.error();
+            },
+            { enableHighAccuracy: false, timeout: 15000, maximumAge: 60000 }
+          );
+        }
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );

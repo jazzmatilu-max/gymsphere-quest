@@ -2,14 +2,10 @@ import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import Dashboard from "@/components/Dashboard";
-import TrainingMatch from "@/components/TrainingMatch";
-import GeoCheckin from "@/components/GeoCheckin";
-import Marketplace from "@/components/Marketplace";
-import AvatarCreator from "@/components/AvatarCreator";
-import NutritionAdvisor from "@/components/NutritionAdvisor";
 import Workouts from "@/components/Workouts";
-import Inventory from "@/components/Inventory";
-import StatsPanel from "@/components/StatsPanel";
+import SocialHub from "@/components/SocialHub";
+import Marketplace from "@/components/Marketplace";
+import ProfileHub from "@/components/ProfileHub";
 import BottomNav from "@/components/BottomNav";
 import Auth from "@/pages/Auth";
 import { Loader2 } from "lucide-react";
@@ -33,13 +29,9 @@ const Index = () => {
     switch (activeTab) {
       case "dashboard": return <Dashboard />;
       case "workouts": return <Workouts />;
-      case "match": return <TrainingMatch />;
-      case "checkin": return <GeoCheckin />;
+      case "social": return <SocialHub />;
       case "marketplace": return <Marketplace />;
-      case "inventory": return <Inventory />;
-      case "stats": return <StatsPanel />;
-      case "nutrition": return <NutritionAdvisor />;
-      case "avatar": return <AvatarCreator />;
+      case "profile": return <ProfileHub />;
       default: return <Dashboard />;
     }
   };

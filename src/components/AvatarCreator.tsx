@@ -165,7 +165,9 @@ const AvatarCreator = () => {
       setStream(mediaStream);
       if (videoRef.current) videoRef.current.srcObject = mediaStream;
     } catch {
-      setCameraError("No se pudo acceder a la cámara. Verifica los permisos del navegador.");
+      // Fallback: open file picker if camera is blocked
+      setCameraError(null);
+      fileInputRef.current?.click();
     }
   }, []);
 

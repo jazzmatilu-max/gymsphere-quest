@@ -39,12 +39,11 @@ const GeoCheckin = () => {
     setGeoError(null);
     sounds.sonar();
 
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const d = getDistance(pos.coords.latitude, pos.coords.longitude, gymLat, gymLng);
-        setDistance(Math.round(d));
+    const processPosition = async (lat: number, lng: number) => {
+      const d = getDistance(lat, lng, gymLat, gymLng);
+      setDistance(Math.round(d));
 
-        if (d <= 100 && user) {
+      if (d <= 100 && user) {
           // Record checkin in DB
           await supabase.from("checkins").insert({
             user_id: user.id,
@@ -77,10 +76,29 @@ const GeoCheckin = () => {
           sounds.error();
         }
       },
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        await processPosition(pos.coords.latitude, pos.coords.longitude);
+      },
       (err) => {
-        setGeoError(err.code === 1 ? "Permiso de ubicación denegado." : "No se pudo obtener tu ubicación.");
-        setStatus("error");
-        sounds.error();
+        if (err.code === 1) {
+          setGeoError("Permiso de ubicación denegado.");
+          setStatus("error");
+          sounds.error();
+        } else {
+          // Retry with low accuracy / network-based location
+          navigator.geolocation.getCurrentPosition(
+            async (pos) => {
+              await processPosition(pos.coords.latitude, pos.coords.longitude);
+            },
+            () => {
+              setGeoError("No se pudo obtener tu ubicación. Intenta de nuevo.");
+              setStatus("error");
+              sounds.error();
+            },
+            { enableHighAccuracy: false, timeout: 15000, maximumAge: 60000 }
+          );
+        }
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );

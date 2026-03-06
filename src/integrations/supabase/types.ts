@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      achievements: {
+        Row: {
+          category: string
+          coins_reward: number
+          created_at: string
+          description: string | null
+          icon: string
+          id: string
+          key: string
+          name: string
+          requirement_type: string
+          requirement_value: number
+          xp_reward: number
+        }
+        Insert: {
+          category?: string
+          coins_reward?: number
+          created_at?: string
+          description?: string | null
+          icon?: string
+          id?: string
+          key: string
+          name: string
+          requirement_type: string
+          requirement_value?: number
+          xp_reward?: number
+        }
+        Update: {
+          category?: string
+          coins_reward?: number
+          created_at?: string
+          description?: string | null
+          icon?: string
+          id?: string
+          key?: string
+          name?: string
+          requirement_type?: string
+          requirement_value?: number
+          xp_reward?: number
+        }
+        Relationships: []
+      }
       checkins: {
         Row: {
           coins_earned: number
@@ -181,6 +223,35 @@ export type Database = {
           target_id?: string
         }
         Relationships: []
+      }
+      user_achievements: {
+        Row: {
+          achievement_id: string
+          id: string
+          unlocked_at: string
+          user_id: string
+        }
+        Insert: {
+          achievement_id: string
+          id?: string
+          unlocked_at?: string
+          user_id: string
+        }
+        Update: {
+          achievement_id?: string
+          id?: string
+          unlocked_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_achievements_achievement_id_fkey"
+            columns: ["achievement_id"]
+            isOneToOne: false
+            referencedRelation: "achievements"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_inventory: {
         Row: {

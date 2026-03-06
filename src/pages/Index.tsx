@@ -7,6 +7,7 @@ import SocialHub from "@/components/SocialHub";
 import Marketplace from "@/components/Marketplace";
 import ProfileHub from "@/components/ProfileHub";
 import BottomNav from "@/components/BottomNav";
+import InAppNotification from "@/components/InAppNotification";
 import Auth from "@/pages/Auth";
 import { Loader2 } from "lucide-react";
 
@@ -38,6 +39,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background cyber-grid relative">
+      <InAppNotification />
       <div className="max-w-lg mx-auto px-4 pt-6 pb-24">
         {renderTab()}
       </div>

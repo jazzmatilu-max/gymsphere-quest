@@ -5,15 +5,8 @@ import { useProfile } from "@/hooks/useProfile";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import { sounds } from "@/lib/sounds";
-
-const ACHIEVEMENTS = [
-  { name: "Primera Sesión", icon: "🏋️", minWorkouts: 1 },
-  { name: "Racha de 7 días", icon: "🔥", minStreak: 7 },
-  { name: "100 Check-ins", icon: "📍", minWorkouts: 100 },
-  { name: "Nivel 25", icon: "⭐", minLevel: 25 },
-  { name: "Social Butterfly", icon: "🦋", minLevel: 10 },
-  { name: "Comprador Pro", icon: "🛒", minCoins: 0 },
-];
+import SyncLoader from "./SyncLoader";
+import AchievementsPanel from "./AchievementsPanel";
 
 const GOALS = ["Hipertrofia", "Fuerza", "Cardio", "Pérdida de peso"];
 
@@ -82,10 +75,14 @@ const Dashboard = () => {
   const [goal, setGoal] = useState("");
   const [coinDrop, setCoinDrop] = useState(0);
   const [showReset, setShowReset] = useState(false);
+  const [syncing, setSyncing] = useState(true);
 
   const godMode = useGodMode(profile?.total_workouts || 0);
 
   if (!profile) return null;
+
+  const xpToNext = profile.level * 500;
+  const xpPercent = Math.min((profile.xp / xpToNext) * 100, 100);
 
   const xpToNext = profile.level * 500;
   const xpPercent = Math.min((profile.xp / xpToNext) * 100, 100);

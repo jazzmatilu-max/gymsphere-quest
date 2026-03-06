@@ -6,6 +6,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { sounds } from "@/lib/sounds";
+import { triggerNotification } from "./InAppNotification";
+import SyncLoader from "./SyncLoader";
+import MuscleVisualizer from "./MuscleVisualizer";
 
 const CATEGORIES = [
   { id: "cardio", label: "Cardio", icon: <Footprints className="w-4 h-4" />, color: "text-blue-400" },

@@ -6,6 +6,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { sounds } from "@/lib/sounds";
+import { triggerNotification } from "./InAppNotification";
+import SyncLoader from "./SyncLoader";
+import MuscleVisualizer from "./MuscleVisualizer";
 
 const CATEGORIES = [
   { id: "cardio", label: "Cardio", icon: <Footprints className="w-4 h-4" />, color: "text-blue-400" },
@@ -73,6 +76,10 @@ const Workouts = () => {
   const [dailyXp, setDailyXp] = useState(0);
   const [overtraining, setOvertraining] = useState(false);
   const [logging, setLogging] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(true);
+
+  // Track which muscle groups have been worked
+  const workedMuscles = Array.from(completed).map((k) => k.split("-")[0]).filter((v, i, a) => a.indexOf(v) === i);
 
   const handleComplete = async (exercise: Exercise) => {
     if (!user || logging) return;
@@ -107,6 +114,7 @@ const Workouts = () => {
       setDailyXp(newDailyXp);
       sounds.success();
       toast({ title: `+${exercise.xp} XP`, description: `${exercise.name} completado` });
+      triggerNotification(`¡${exercise.name} completado!`, exercise.xp);
 
       if ((data as any).leveled_up) {
         sounds.levelUp();
@@ -122,6 +130,8 @@ const Workouts = () => {
 
   return (
     <div className="space-y-5">
+      {syncing && <SyncLoader label="Cargando rutinas..." duration={500} onComplete={() => setSyncing(false)} />}
+
       <motion.h2 initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="text-2xl font-bold neon-text">
         Rutinas
       </motion.h2>
@@ -223,6 +233,9 @@ const Workouts = () => {
           );
         })}
       </div>
+
+      {/* Muscle Visualizer */}
+      {workedMuscles.length > 0 && <MuscleVisualizer activeGroups={workedMuscles} />}
 
       {/* Stats summary */}
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}

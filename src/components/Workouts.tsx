@@ -114,6 +114,7 @@ const Workouts = () => {
       setDailyXp(newDailyXp);
       sounds.success();
       toast({ title: `+${exercise.xp} XP`, description: `${exercise.name} completado` });
+      triggerNotification(`¡${exercise.name} completado!`, exercise.xp);
 
       if ((data as any).leveled_up) {
         sounds.levelUp();

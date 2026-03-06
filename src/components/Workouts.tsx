@@ -76,6 +76,10 @@ const Workouts = () => {
   const [dailyXp, setDailyXp] = useState(0);
   const [overtraining, setOvertraining] = useState(false);
   const [logging, setLogging] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(true);
+
+  // Track which muscle groups have been worked
+  const workedMuscles = Array.from(completed).map((k) => k.split("-")[0]).filter((v, i, a) => a.indexOf(v) === i);
 
   const handleComplete = async (exercise: Exercise) => {
     if (!user || logging) return;
@@ -125,6 +129,8 @@ const Workouts = () => {
 
   return (
     <div className="space-y-5">
+      {syncing && <SyncLoader label="Cargando rutinas..." duration={500} onComplete={() => setSyncing(false)} />}
+
       <motion.h2 initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="text-2xl font-bold neon-text">
         Rutinas
       </motion.h2>
@@ -226,6 +232,9 @@ const Workouts = () => {
           );
         })}
       </div>
+
+      {/* Muscle Visualizer */}
+      {workedMuscles.length > 0 && <MuscleVisualizer activeGroups={workedMuscles} />}
 
       {/* Stats summary */}
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}

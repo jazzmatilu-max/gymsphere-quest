@@ -1,22 +1,76 @@
 import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ShoppingBag, Filter, Coins, Dumbbell, Shirt, FlaskConical, Loader2, Sparkles } from "lucide-react";
+import { ShoppingBag, Filter, Coins, Dumbbell, Shirt, FlaskConical, Loader2, Sparkles, Package } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { toast } from "@/hooks/use-toast";
 import { sounds } from "@/lib/sounds";
+import Inventory from "./Inventory";
+
+// Product images mapping by name keywords
+import imgPesas from "@/assets/products/pesas.png";
+import imgProteina from "@/assets/products/proteina.png";
+import imgBandas from "@/assets/products/bandas.png";
+import imgCuerda from "@/assets/products/cuerda.png";
+import imgCreatina from "@/assets/products/creatina.png";
+import imgCamiseta from "@/assets/products/camiseta.png";
+import imgCinturon from "@/assets/products/cinturon.png";
+import imgSkinGold from "@/assets/products/skin-gold.png";
+
+const PRODUCT_IMAGES: Record<string, string> = {
+  pesa: imgPesas,
+  mancuerna: imgPesas,
+  dumbbell: imgPesas,
+  proteina: imgProteina,
+  proteína: imgProteina,
+  whey: imgProteina,
+  banda: imgBandas,
+  resistencia: imgBandas,
+  cuerda: imgCuerda,
+  saltar: imgCuerda,
+  creatina: imgCreatina,
+  camiseta: imgCamiseta,
+  compresión: imgCamiseta,
+  shorts: imgCamiseta,
+  cinturón: imgCinturon,
+  cinturon: imgCinturon,
+  lumbar: imgCinturon,
+  faja: imgCinturon,
+  skin: imgSkinGold,
+  legendario: imgSkinGold,
+  dorado: imgSkinGold,
+  gold: imgSkinGold,
+};
+
+function getProductImage(name: string, category: string): string | null {
+  const lower = name.toLowerCase();
+  for (const [key, img] of Object.entries(PRODUCT_IMAGES)) {
+    if (lower.includes(key)) return img;
+  }
+  // Fallback by category
+  if (category === "equipo") return imgPesas;
+  if (category === "suplemento") return imgProteina;
+  if (category === "ropa") return imgCamiseta;
+  if (category === "skin") return imgSkinGold;
+  return null;
+}
 
 const CATEGORIES = ["todos", "suplemento", "ropa", "equipo", "skin"] as const;
 const GOALS = ["Todos", "Hipertrofia", "Fuerza", "Cardio", "Pérdida de peso"];
 
 const categoryIcons: Record<string, React.ReactNode> = {
-  todos: <ShoppingBag className="w-4 h-4" />,
-  suplemento: <FlaskConical className="w-4 h-4" />,
-  ropa: <Shirt className="w-4 h-4" />,
-  equipo: <Dumbbell className="w-4 h-4" />,
-  skin: <Sparkles className="w-4 h-4" />,
+  todos: <ShoppingBag className="w-3.5 h-3.5" />,
+  suplemento: <FlaskConical className="w-3.5 h-3.5" />,
+  ropa: <Shirt className="w-3.5 h-3.5" />,
+  equipo: <Dumbbell className="w-3.5 h-3.5" />,
+  skin: <Sparkles className="w-3.5 h-3.5" />,
 };
+
+const VIEW_TABS = [
+  { id: "shop", label: "Tienda", icon: <ShoppingBag className="w-3.5 h-3.5" /> },
+  { id: "purchases", label: "Mis Compras", icon: <Package className="w-3.5 h-3.5" /> },
+];
 
 interface MarketItem {
   id: string;
@@ -32,6 +86,7 @@ interface MarketItem {
 const Marketplace = () => {
   const { user } = useAuth();
   const { profile, refetch } = useProfile();
+  const [view, setView] = useState<"shop" | "purchases">("shop");
   const [category, setCategory] = useState<string>("todos");
   const [goalFilter, setGoalFilter] = useState<string>("Todos");
   const [showRecommended, setShowRecommended] = useState(true);
@@ -89,86 +144,116 @@ const Marketplace = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <motion.h2 initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="text-2xl font-bold neon-text">
         Marketplace
       </motion.h2>
 
-      {/* Balance */}
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center justify-between neon-card py-3">
-        <span className="text-sm text-muted-foreground">Tu saldo</span>
-        <span className="flex items-center gap-1.5 font-mono font-bold text-lg neon-text-cyan">
-          <Coins className="w-5 h-5" /> {profile?.coins ?? 0}
-        </span>
-      </motion.div>
-
-      {/* Category filters */}
-      <div className="flex gap-2 overflow-x-auto pb-1">
-        {CATEGORIES.map((c) => (
-          <button key={c} onClick={() => { setCategory(c); sounds.click(); }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all whitespace-nowrap ${
-              category === c ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-            }`}>
-            {categoryIcons[c]}
-            {c.charAt(0).toUpperCase() + c.slice(1)}
+      {/* Shop / Purchases toggle */}
+      <div className="flex gap-2">
+        {VIEW_TABS.map((t) => (
+          <button
+            key={t.id}
+            onClick={() => { setView(t.id as "shop" | "purchases"); sounds.click(); }}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              view === t.id ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+            }`}
+          >
+            {t.icon} {t.label}
           </button>
         ))}
       </div>
 
-      {/* Goal filter */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1">
-        <Filter className="w-4 h-4 text-muted-foreground shrink-0" />
-        {GOALS.map((g) => (
-          <button key={g} onClick={() => { setGoalFilter(g); sounds.click(); }}
-            className={`px-3 py-1 rounded-full text-xs font-medium transition-all whitespace-nowrap ${
-              goalFilter === g ? "neon-border bg-primary/10 text-primary" : "bg-muted text-muted-foreground hover:text-foreground"
-            }`}>
-            {g}
-          </button>
-        ))}
-      </div>
-
-      <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
-        <input type="checkbox" checked={showRecommended} onChange={(e) => setShowRecommended(e.target.checked)} className="accent-primary" />
-        Priorizar según mi objetivo ({userGoal})
-      </label>
-
-      {loadingItems ? (
-        <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 text-primary animate-spin" /></div>
+      {view === "purchases" ? (
+        <Inventory />
       ) : (
-        <div className="grid grid-cols-2 gap-3">
-          {filtered.map((product, i) => {
-            const isRecommended = product.fitness_goals.includes(userGoal);
-            const canAfford = (profile?.coins ?? 0) >= product.price;
-            const isBuying = purchasing === product.id;
-            return (
-              <motion.div key={product.id} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-                className={`neon-card relative ${isRecommended ? "border-primary/40" : ""}`}>
-                {isRecommended && (
-                  <span className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-[10px] font-bold px-2 py-0.5 rounded-full">REC</span>
-                )}
-                <div className="text-4xl text-center mb-2">{product.emoji}</div>
-                <h3 className="font-semibold text-sm text-foreground leading-tight">{product.name}</h3>
-                <p className="text-xs text-muted-foreground mt-1">{product.description}</p>
-                <div className="flex items-center justify-between mt-3">
-                  <span className="flex items-center gap-1 font-mono font-bold text-primary">
-                    <Coins className="w-3.5 h-3.5" /> {product.price}
-                  </span>
-                  <button
-                    onClick={() => handlePurchase(product)}
-                    disabled={isBuying}
-                    className={`text-xs font-semibold px-3 py-1 rounded-full transition-all ${
-                      canAfford
-                        ? "bg-primary/20 text-primary hover:bg-primary/30"
-                        : "bg-destructive/20 text-destructive animate-pulse"
-                    }`}>
-                    {isBuying ? <Loader2 className="w-3 h-3 animate-spin" /> : canAfford ? "Comprar" : "Sin créditos"}
-                  </button>
-                </div>
-              </motion.div>
-            );
-          })}
-        </div>
+        <>
+          {/* Balance */}
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+            className="flex items-center justify-between neon-card py-2.5 backdrop-blur-sm">
+            <span className="text-xs text-muted-foreground">Tu saldo</span>
+            <span className="flex items-center gap-1.5 font-mono font-bold text-base neon-text-cyan">
+              <Coins className="w-4 h-4" /> {profile?.coins ?? 0}
+            </span>
+          </motion.div>
+
+          {/* Category filters - 15% smaller */}
+          <div className="flex gap-1.5 overflow-x-auto pb-1">
+            {CATEGORIES.map((c) => (
+              <button key={c} onClick={() => { setCategory(c); sounds.click(); }}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-all whitespace-nowrap ${
+                  category === c ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                }`}>
+                {categoryIcons[c]}
+                {c.charAt(0).toUpperCase() + c.slice(1)}
+              </button>
+            ))}
+          </div>
+
+          {/* Goal filter - 15% smaller */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+            <Filter className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+            {GOALS.map((g) => (
+              <button key={g} onClick={() => { setGoalFilter(g); sounds.click(); }}
+                className={`px-2.5 py-0.5 rounded-full text-[11px] font-medium transition-all whitespace-nowrap ${
+                  goalFilter === g ? "neon-border bg-primary/10 text-primary" : "bg-muted text-muted-foreground hover:text-foreground"
+                }`}>
+                {g}
+              </button>
+            ))}
+          </div>
+
+          <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+            <input type="checkbox" checked={showRecommended} onChange={(e) => setShowRecommended(e.target.checked)} className="accent-primary" />
+            Priorizar según mi objetivo ({userGoal})
+          </label>
+
+          {loadingItems ? (
+            <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 text-primary animate-spin" /></div>
+          ) : (
+            <div className="grid grid-cols-2 gap-2.5">
+              {filtered.map((product, i) => {
+                const isRecommended = product.fitness_goals.includes(userGoal);
+                const canAfford = (profile?.coins ?? 0) >= product.price;
+                const isBuying = purchasing === product.id;
+                const productImg = getProductImage(product.name, product.category);
+                return (
+                  <motion.div key={product.id} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
+                    className={`neon-card relative backdrop-blur-sm ${isRecommended ? "border-primary/40" : ""}`}>
+                    {isRecommended && (
+                      <span className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-[9px] font-bold px-1.5 py-0.5 rounded-full z-10">REC</span>
+                    )}
+                    {/* Product image or emoji */}
+                    <div className="w-full aspect-square rounded-lg overflow-hidden bg-muted/20 mb-2 flex items-center justify-center">
+                      {productImg ? (
+                        <img src={productImg} alt={product.name} className="w-full h-full object-contain p-2" loading="lazy" />
+                      ) : (
+                        <span className="text-4xl">{product.emoji}</span>
+                      )}
+                    </div>
+                    <h3 className="font-semibold text-xs text-foreground leading-tight">{product.name}</h3>
+                    <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-2">{product.description}</p>
+                    <div className="flex items-center justify-between mt-2">
+                      <span className="flex items-center gap-1 font-mono font-bold text-xs text-primary">
+                        <Coins className="w-3 h-3" /> {product.price}
+                      </span>
+                      <button
+                        onClick={() => handlePurchase(product)}
+                        disabled={isBuying}
+                        className={`text-[10px] font-semibold px-2.5 py-0.5 rounded-full transition-all ${
+                          canAfford
+                            ? "bg-primary/20 text-primary hover:bg-primary/30"
+                            : "bg-destructive/20 text-destructive animate-pulse"
+                        }`}>
+                        {isBuying ? <Loader2 className="w-3 h-3 animate-spin" /> : canAfford ? "Comprar" : "Sin créditos"}
+                      </button>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          )}
+        </>
       )}
     </div>
   );

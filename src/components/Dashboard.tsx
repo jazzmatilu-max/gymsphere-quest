@@ -84,8 +84,6 @@ const Dashboard = () => {
   const xpToNext = profile.level * 500;
   const xpPercent = Math.min((profile.xp / xpToNext) * 100, 100);
 
-  const xpToNext = profile.level * 500;
-  const xpPercent = Math.min((profile.xp / xpToNext) * 100, 100);
 
   const startEdit = () => {
     setUsername(profile.username);
@@ -111,13 +109,6 @@ const Dashboard = () => {
     setTimeout(() => window.location.reload(), 1000);
   };
 
-  const isUnlocked = (a: typeof ACHIEVEMENTS[0]) => {
-    if (a.minWorkouts && profile.total_workouts >= a.minWorkouts) return true;
-    if (a.minStreak && profile.streak_days >= a.minStreak) return true;
-    if (a.minLevel && profile.level >= a.minLevel) return true;
-    if (a.minCoins !== undefined && profile.coins > 0) return true;
-    return false;
-  };
 
   return (
     <div className="space-y-6">
@@ -246,20 +237,9 @@ const Dashboard = () => {
         </AnimatePresence>
       </motion.div>
 
-      {/* Achievements */}
+      {/* Achievements - DB-backed */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }} className="neon-card">
-        <h3 className="font-semibold flex items-center gap-2 mb-3"><Trophy className="w-4 h-4 text-primary" /> Logros</h3>
-        <div className="grid grid-cols-3 gap-2">
-          {ACHIEVEMENTS.map((ach) => {
-            const unlocked = isUnlocked(ach);
-            return (
-              <div key={ach.name} className={`text-center p-2 rounded-lg ${unlocked ? "bg-primary/10 achievement-glow" : "bg-muted/30 opacity-40"}`}>
-                <div className="text-2xl mb-1">{ach.icon}</div>
-                <p className="text-[10px] text-muted-foreground leading-tight">{ach.name}</p>
-              </div>
-            );
-          })}
-        </div>
+        <AchievementsPanel />
       </motion.div>
 
       {/* Factory Reset - hidden toggle */}
